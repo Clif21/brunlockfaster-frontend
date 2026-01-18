@@ -1,3 +1,4 @@
+// frontend/app/register/page.jsx
 "use client";
 
 import { useState } from "react";
@@ -38,6 +39,12 @@ export default function RegisterPage() {
   return (
     <main style={wrap}>
       <h1 style={h1}>Create account</h1>
+
+      {/* Back to homepage link */}
+      <p style={{ marginBottom: "1rem" }}>
+        <a href="/">← Back to homepage</a>
+      </p>
+
       <form onSubmit={submit} style={form}>
         <label>
           Name
@@ -104,7 +111,7 @@ const form = {
 const input = {
   width: "100%",
   padding: "0.6rem 0.7rem",
-  border: "1px solid #E5E7EB",
+  border: "1px solid #E5E7EB", // ✅ fixed quotes here
   borderRadius: "0.6rem",
   marginTop: "0.35rem",
 };

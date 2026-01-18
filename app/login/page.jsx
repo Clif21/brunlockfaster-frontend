@@ -35,6 +35,12 @@ export default function LoginPage() {
   return (
     <main style={wrap}>
       <h1 style={h1}>Log in</h1>
+
+      {/* Back to homepage link */}
+      <p style={{ marginBottom: "1rem" }}>
+        <a href="/">← Back to homepage</a>
+      </p>
+
       <form onSubmit={submit} style={form}>
         <label>
           Email
