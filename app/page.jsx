@@ -195,8 +195,8 @@ export default function Home() {
           <div className="left">
             <span>
               📞{" "}
-              <a href="tel:+13055550139" className="toplink">
-                +1 (305) 555-0139
+              <a href="tel:+12392648481" className="toplink">
+                +1 (239) 264-8481
               </a>
             </span>
             <span>
@@ -586,7 +586,7 @@ export default function Home() {
               </a>
             </p>
             <p>
-              <a href="tel:+13055550139">+1 (305) 555-0139</a>
+              <a href="tel:+12392648481">+1 (239) 264-8481</a>
             </p>
           </div>
           <div>
