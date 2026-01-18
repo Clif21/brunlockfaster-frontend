@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import ChatWidget from "../components/ChatWidget";
+import { API_BASE } from "../lib/apiBase";
 
 export default function Home() {
   // ===== Form state =====

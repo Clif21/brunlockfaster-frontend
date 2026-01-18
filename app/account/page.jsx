@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ChatWidget from "../../components/ChatWidget";
+import { API_BASE } from "../../lib/apiBase";
 
 export default function AccountPage() {
   const [user, setUser] = useState(null);

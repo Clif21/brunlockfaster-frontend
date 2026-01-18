@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { API_BASE } from "../../lib/apiBase";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
