@@ -54,14 +54,7 @@ export default function Home() {
       "Galaxy A54 / A34 / A14",
       "Other",
     ],
-    LG: [
-      "LG V60 ThinQ",
-      "LG G8 / G8X ThinQ",
-      "LG Velvet",
-      "LG Stylo 6",
-      "LG K51 / K92",
-      "Other",
-    ],
+    LG: ["LG V60 ThinQ", "LG G8 / G8X ThinQ", "LG Velvet", "LG Stylo 6", "LG K51 / K92", "Other"],
     Motorola: [
       "Moto G Power (all years)",
       "Moto G Stylus (all years)",
@@ -70,30 +63,9 @@ export default function Home() {
       "Moto E (all years)",
       "Other",
     ],
-    "Google Pixel": [
-      "Pixel 9 / 9 Pro",
-      "Pixel 8 / 8 Pro",
-      "Pixel 7 / 7 Pro",
-      "Pixel 6 / 6 Pro",
-      "Pixel 5 / 5a",
-      "Other",
-    ],
-    OnePlus: [
-      "OnePlus 12 / 12R",
-      "OnePlus 11 / 11R",
-      "OnePlus 10 Pro / 10T",
-      "OnePlus 9 / 9 Pro",
-      "Nord N30 / N20",
-      "Other",
-    ],
-    Huawei: [
-      "P60 / P60 Pro",
-      "P50 / P50 Pro",
-      "Mate 50 / 50 Pro",
-      "Mate 40 / 40 Pro",
-      "Nova series",
-      "Other",
-    ],
+    "Google Pixel": ["Pixel 9 / 9 Pro", "Pixel 8 / 8 Pro", "Pixel 7 / 7 Pro", "Pixel 6 / 6 Pro", "Pixel 5 / 5a", "Other"],
+    OnePlus: ["OnePlus 12 / 12R", "OnePlus 11 / 11R", "OnePlus 10 Pro / 10T", "OnePlus 9 / 9 Pro", "Nord N30 / N20", "Other"],
+    Huawei: ["P60 / P60 Pro", "P50 / P50 Pro", "Mate 50 / 50 Pro", "Mate 40 / 40 Pro", "Nova series", "Other"],
     Sony: ["Xperia 1 V", "Xperia 5 V", "Xperia 10 V", "Xperia Pro / Pro-I", "Other"],
     Nokia: ["Nokia G50", "Nokia X100", "Nokia 5.4", "Nokia 3.4", "Other"],
     Xiaomi: ["Xiaomi 13 / 13 Pro", "Xiaomi 12 / 12 Pro", "Xiaomi 11 / 11T", "Redmi Note 13 / 12", "POCO F5 / F4", "Other"],
@@ -218,6 +190,7 @@ export default function Home() {
               className="mobile-menu-btn mobile-only"
               onClick={() => setMobileNavOpen((v) => !v)}
               aria-label="Open menu"
+              aria-expanded={mobileNavOpen ? "true" : "false"}
             >
               ☰
             </button>
@@ -274,9 +247,7 @@ export default function Home() {
         <div className="container hero-inner">
           <div className="hero-text">
             <h1>Carrier unlock for iPhone, Samsung &amp; more.</h1>
-            <p>
-              Fast, remote, IMEI-based unlocks. Pay online, get updates by email. No jailbreak.
-            </p>
+            <p>Fast, remote, IMEI-based unlocks. Pay online, get updates by email. No jailbreak.</p>
             <ul className="bullets">
               <li>✅ Keep your data &amp; warranty</li>
               <li>✅ Works worldwide once unlocked</li>
@@ -400,13 +371,7 @@ export default function Home() {
               {/* Price */}
               <label>
                 Price (cents)
-                <input
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  type="number"
-                  min="100"
-                  required
-                />
+                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" min="100" required />
               </label>
 
               {error && <p className="error">{error}</p>}
@@ -525,9 +490,7 @@ export default function Home() {
           <h2>What customers say</h2>
           <div className="grid3">
             <div className="card">
-              <p>
-                “Paid at lunch, email same evening that my iPhone was unlocked. Swapped SIM and it worked.”
-              </p>
+              <p>“Paid at lunch, email same evening that my iPhone was unlocked. Swapped SIM and it worked.”</p>
               <div className="who">— Miguel R.</div>
             </div>
             <div className="card">
@@ -710,21 +673,21 @@ export default function Home() {
         .mobile-menu {
           border-top: 1px solid var(--color-border);
           background: #fff;
-          padding: 0.8rem 1.5rem 1.1rem;
+          padding: 0.9rem 1.5rem 1.15rem;
           display: grid;
-          gap: 0.7rem;
+          gap: 0.9rem;
         }
         .mobile-menu a {
           text-decoration: none;
           color: var(--color-dark);
-          font-weight: 600;
+          font-weight: 700;
         }
         .mobile-cta {
-          margin-top: 0.3rem;
+          margin-top: 0.2rem;
           display: inline-block;
           text-align: center;
-          padding: 0.75rem 1rem;
-          border-radius: 0.8rem;
+          padding: 0.85rem 1rem;
+          border-radius: 0.85rem;
           background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-2) 100%);
           color: #fff !important;
         }
@@ -1021,7 +984,9 @@ export default function Home() {
           transform: translateY(-1px);
         }
 
+        /* ===== MOBILE FIXES ===== */
         @media (max-width: 900px) {
+          /* Hide any desktop-only elements */
           .desktop-only {
             display: none !important;
           }
@@ -1029,6 +994,7 @@ export default function Home() {
             display: block !important;
           }
 
+          /* Topbar stacks cleanly */
           .topbar-inner {
             height: auto;
             padding: 0.6rem 0;
@@ -1044,15 +1010,25 @@ export default function Home() {
             margin-right: 0;
           }
 
+          /* Navbar spacing */
           .nav-inner {
             height: auto;
-            padding: 0.7rem 0;
+            padding: 0.75rem 0;
           }
 
+          /* Mobile menu appearance */
+          .mobile-menu {
+            display: grid;
+            gap: 0.9rem;
+            padding: 1rem 1.5rem 1.2rem;
+          }
+
+          /* Trust bar: 2 columns */
           .trust-inner {
             grid-template-columns: 1fr 1fr;
           }
 
+          /* Hero stacking + better text sizing */
           .hero-inner {
             flex-direction: column;
           }
@@ -1063,13 +1039,24 @@ export default function Home() {
           .hero-actions {
             flex-direction: column;
             align-items: stretch;
+            gap: 0.75rem;
           }
           .hero-actions a {
+            width: 100%;
             text-align: center;
           }
           .hero-card {
             width: 100%;
             padding: 1rem;
+          }
+        }
+
+        @media (max-width: 380px) {
+          .container {
+            padding: 0 1rem;
+          }
+          .trust-inner {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
