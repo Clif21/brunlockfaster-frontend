@@ -1,22 +1,21 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { API_BASE } from "../lib/apiBase";
+import ChatWidget from "../components/ChatWidget";
+
+const API_BASE = "http://localhost:4242";
 
 export default function Home() {
   // ===== Form state =====
   const [email, setEmail] = useState("");
   const [brand, setBrand] = useState("iPhone");
   const [customBrand, setCustomBrand] = useState("");
-  const [model, setModel] = useState(""); // selected model or "Other"
-  const [customModel, setCustomModel] = useState(""); // free text model
+  const [model, setModel] = useState("");
+  const [customModel, setCustomModel] = useState("");
   const [imei, setImei] = useState("");
   const [price, setPrice] = useState("2900");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // Mobile nav
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // ===== Brand + Model options =====
   const brandOptions = [
@@ -54,7 +53,14 @@ export default function Home() {
       "Galaxy A54 / A34 / A14",
       "Other",
     ],
-    LG: ["LG V60 ThinQ", "LG G8 / G8X ThinQ", "LG Velvet", "LG Stylo 6", "LG K51 / K92", "Other"],
+    LG: [
+      "LG V60 ThinQ",
+      "LG G8 / G8X ThinQ",
+      "LG Velvet",
+      "LG Stylo 6",
+      "LG K51 / K92",
+      "Other",
+    ],
     Motorola: [
       "Moto G Power (all years)",
       "Moto G Stylus (all years)",
@@ -63,12 +69,52 @@ export default function Home() {
       "Moto E (all years)",
       "Other",
     ],
-    "Google Pixel": ["Pixel 9 / 9 Pro", "Pixel 8 / 8 Pro", "Pixel 7 / 7 Pro", "Pixel 6 / 6 Pro", "Pixel 5 / 5a", "Other"],
-    OnePlus: ["OnePlus 12 / 12R", "OnePlus 11 / 11R", "OnePlus 10 Pro / 10T", "OnePlus 9 / 9 Pro", "Nord N30 / N20", "Other"],
-    Huawei: ["P60 / P60 Pro", "P50 / P50 Pro", "Mate 50 / 50 Pro", "Mate 40 / 40 Pro", "Nova series", "Other"],
-    Sony: ["Xperia 1 V", "Xperia 5 V", "Xperia 10 V", "Xperia Pro / Pro-I", "Other"],
-    Nokia: ["Nokia G50", "Nokia X100", "Nokia 5.4", "Nokia 3.4", "Other"],
-    Xiaomi: ["Xiaomi 13 / 13 Pro", "Xiaomi 12 / 12 Pro", "Xiaomi 11 / 11T", "Redmi Note 13 / 12", "POCO F5 / F4", "Other"],
+    "Google Pixel": [
+      "Pixel 9 / 9 Pro",
+      "Pixel 8 / 8 Pro",
+      "Pixel 7 / 7 Pro",
+      "Pixel 6 / 6 Pro",
+      "Pixel 5 / 5a",
+      "Other",
+    ],
+    OnePlus: [
+      "OnePlus 12 / 12R",
+      "OnePlus 11 / 11R",
+      "OnePlus 10 Pro / 10T",
+      "OnePlus 9 / 9 Pro",
+      "Nord N30 / N20",
+      "Other",
+    ],
+    Huawei: [
+      "P60 / P60 Pro",
+      "P50 / P50 Pro",
+      "Mate 50 / 50 Pro",
+      "Mate 40 / 40 Pro",
+      "Nova series",
+      "Other",
+    ],
+    Sony: [
+      "Xperia 1 V",
+      "Xperia 5 V",
+      "Xperia 10 V",
+      "Xperia Pro / Pro-I",
+      "Other",
+    ],
+    Nokia: [
+      "Nokia G50",
+      "Nokia X100",
+      "Nokia 5.4",
+      "Nokia 3.4",
+      "Other",
+    ],
+    Xiaomi: [
+      "Xiaomi 13 / 13 Pro",
+      "Xiaomi 12 / 12 Pro",
+      "Xiaomi 11 / 11T",
+      "Redmi Note 13 / 12",
+      "POCO F5 / F4",
+      "Other",
+    ],
   };
 
   const modelOptions = useMemo(() => {
@@ -168,7 +214,7 @@ export default function Home() {
         <div className="container nav-inner">
           <div className="logo">BRunlockfaster</div>
 
-          {/* Desktop links */}
+          {/* Desktop links only */}
           <nav className="links desktop-only">
             <a href="#services">Services</a>
             <a href="#how">How it works</a>
@@ -185,58 +231,19 @@ export default function Home() {
               Unlock Now
             </a>
 
-            {/* Mobile hamburger */}
-            <button
-              className="mobile-menu-btn mobile-only"
-              onClick={() => setMobileNavOpen((v) => !v)}
-              aria-label="Open menu"
-              aria-expanded={mobileNavOpen ? "true" : "false"}
-            >
+            {/* Mobile hamburger -> NEW PAGE */}
+            <a className="mobile-menu-btn mobile-only" href="/menu" aria-label="Open menu">
               ☰
-            </button>
+            </a>
           </div>
         </div>
-
-        {/* Mobile menu */}
-        {mobileNavOpen && (
-          <div className="mobile-menu mobile-only">
-            <a onClick={() => setMobileNavOpen(false)} href="#services">
-              Services
-            </a>
-            <a onClick={() => setMobileNavOpen(false)} href="#how">
-              How it works
-            </a>
-            <a onClick={() => setMobileNavOpen(false)} href="#pricing">
-              Pricing
-            </a>
-            <a onClick={() => setMobileNavOpen(false)} href="/track">
-              Track
-            </a>
-            <a onClick={() => setMobileNavOpen(false)} href="/login">
-              Login
-            </a>
-            <a onClick={() => setMobileNavOpen(false)} href="/register">
-              Create account
-            </a>
-            <a onClick={() => setMobileNavOpen(false)} href="/account">
-              Account
-            </a>
-            <a onClick={() => setMobileNavOpen(false)} href="#contact">
-              Contact
-            </a>
-
-            <a onClick={() => setMobileNavOpen(false)} className="mobile-cta" href="#order">
-              Unlock Now
-            </a>
-          </div>
-        )}
       </header>
 
       {/* TRUST BAR */}
       <div className="trust">
         <div className="container trust-inner">
           <div>🔒 Secure Stripe Checkout</div>
-          <div>↩️ Money-Back Guarantee</div>
+          <div>↩ Money-Back Guarantee</div>
           <div>🕑 Avg 1–3 Business Days</div>
           <div>🌎 Global Carrier Coverage</div>
         </div>
@@ -247,7 +254,9 @@ export default function Home() {
         <div className="container hero-inner">
           <div className="hero-text">
             <h1>Carrier unlock for iPhone, Samsung &amp; more.</h1>
-            <p>Fast, remote, IMEI-based unlocks. Pay online, get updates by email. No jailbreak.</p>
+            <p>
+              Fast, remote, IMEI-based unlocks. Pay online, get updates by email. No jailbreak.
+            </p>
             <ul className="bullets">
               <li>✅ Keep your data &amp; warranty</li>
               <li>✅ Works worldwide once unlocked</li>
@@ -371,7 +380,13 @@ export default function Home() {
               {/* Price */}
               <label>
                 Price (cents)
-                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" min="100" required />
+                <input
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  type="number"
+                  min="100"
+                  required
+                />
               </label>
 
               {error && <p className="error">{error}</p>}
@@ -393,7 +408,9 @@ export default function Home() {
           <div className="grid3">
             <div className="card">
               <h3>Unlock-only focus</h3>
-              <p>We specialize in IMEI unlocks—no upsells, no distractions, just fast delivery.</p>
+              <p>
+                We specialize in IMEI unlocks—no upsells, no distractions, just fast delivery.
+              </p>
             </div>
             <div className="card">
               <h3>Clear statuses</h3>
@@ -480,7 +497,9 @@ export default function Home() {
             <span>LG</span>
             <span>Motorola</span>
           </div>
-          <p className="muted center">Don’t see yours? Submit the form anyway—if unsupported, we’ll refund you.</p>
+          <p className="muted center">
+            Don’t see yours? Submit the form anyway—if unsupported, we’ll refund you.
+          </p>
         </div>
       </section>
 
@@ -490,11 +509,16 @@ export default function Home() {
           <h2>What customers say</h2>
           <div className="grid3">
             <div className="card">
-              <p>“Paid at lunch, email same evening that my iPhone was unlocked. Swapped SIM and it worked.”</p>
+              <p>
+                “Paid at lunch, email same evening that my iPhone was unlocked. Swapped SIM and it
+                worked.”
+              </p>
               <div className="who">— Miguel R.</div>
             </div>
             <div className="card">
-              <p>“Clear steps and they refunded my friend when her carrier wasn’t supported. Legit.”</p>
+              <p>
+                “Clear steps and they refunded my friend when her carrier wasn’t supported. Legit.”
+              </p>
               <div className="who">— Ashley P.</div>
             </div>
             <div className="card">
@@ -512,7 +536,11 @@ export default function Home() {
           <div className="faq">
             {faqData.map((f, i) => (
               <div key={i} className="faq-item">
-                <button className="faq-q" onClick={() => toggleFaq(i)} aria-expanded={openFaq === i}>
+                <button
+                  className="faq-q"
+                  onClick={() => toggleFaq(i)}
+                  aria-expanded={openFaq === i}
+                >
                   {f.q}
                   <span className="chev">{openFaq === i ? "−" : "+"}</span>
                 </button>
@@ -529,7 +557,9 @@ export default function Home() {
           <div>
             <h3>BRunlockfaster</h3>
             <p>Fast, secure, IMEI-based phone unlock service.</p>
-            <p className="muted small">We do not jailbreak or modify software. All payments handled by Stripe.</p>
+            <p className="muted small">
+              We do not jailbreak or modify software. All payments handled by Stripe.
+            </p>
           </div>
           <div>
             <h4>Contact</h4>
@@ -565,10 +595,8 @@ export default function Home() {
         <div className="footer-bottom">© {new Date().getFullYear()} BRunlockfaster. All rights reserved.</div>
       </footer>
 
-      {/* FLOATING CHAT BUTTON */}
-      <a href="/chat" className="chat-fab" aria-label="Chat with support">
-        💬
-      </a>
+      {/* FLOATING CHAT WIDGET */}
+      <ChatWidget />
 
       {/* STYLES */}
       <style jsx>{`
@@ -588,19 +616,16 @@ export default function Home() {
           color: var(--color-text);
           font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
+
+        /* Helpers for responsive nav */
+        .desktop-only { display: block; }
+        .mobile-only { display: none; }
+
         .container {
           max-width: 1100px;
           margin: 0 auto;
           padding: 0 1.5rem;
         }
-
-        .mobile-only {
-          display: none;
-        }
-        .desktop-only {
-          display: block;
-        }
-
         .topbar {
           background: var(--color-dark);
           color: #fff;
@@ -619,7 +644,6 @@ export default function Home() {
           color: #fff;
           text-decoration: none;
         }
-
         .navbar {
           background: #fff;
           border-bottom: 1px solid var(--color-border);
@@ -632,12 +656,12 @@ export default function Home() {
           align-items: center;
           justify-content: space-between;
           height: 64px;
+          gap: 1rem;
         }
         .logo {
           font-weight: 800;
           font-size: 1.15rem;
           color: var(--color-dark);
-          white-space: nowrap;
         }
         .links a {
           margin-right: 1rem;
@@ -649,7 +673,7 @@ export default function Home() {
         .nav-actions {
           display: flex;
           align-items: center;
-          gap: 0.6rem;
+          gap: 0.75rem;
         }
         .nav-cta {
           background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-2) 100%);
@@ -658,43 +682,31 @@ export default function Home() {
           border-radius: 9999px;
           text-decoration: none;
           font-size: 0.85rem;
+          font-weight: 800;
           white-space: nowrap;
         }
-
         .mobile-menu-btn {
+          width: 44px;
+          height: 44px;
+          border-radius: 0.75rem;
           border: 1px solid var(--color-border);
           background: #fff;
-          border-radius: 0.7rem;
-          padding: 0.45rem 0.75rem;
-          font-size: 1.2rem;
-          cursor: pointer;
-          line-height: 1;
-        }
-        .mobile-menu {
-          border-top: 1px solid var(--color-border);
-          background: #fff;
-          padding: 0.9rem 1.5rem 1.15rem;
-          display: grid;
-          gap: 0.9rem;
-        }
-        .mobile-menu a {
-          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.25rem;
+          font-weight: 900;
           color: var(--color-dark);
-          font-weight: 700;
-        }
-        .mobile-cta {
-          margin-top: 0.2rem;
-          display: inline-block;
-          text-align: center;
-          padding: 0.85rem 1rem;
-          border-radius: 0.85rem;
-          background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-2) 100%);
-          color: #fff !important;
+          text-decoration: none;
         }
 
         .trust {
           background: var(--color-dark);
-          background-image: linear-gradient(90deg, rgba(255, 107, 0, 0.15), rgba(255, 136, 0, 0.15));
+          background-image: linear-gradient(
+            90deg,
+            rgba(255, 107, 0, 0.15),
+            rgba(255, 136, 0, 0.15)
+          );
           color: #eaeef6;
           font-size: 0.9rem;
         }
@@ -704,10 +716,14 @@ export default function Home() {
           gap: 0.75rem;
           padding: 0.7rem 0;
         }
-
         .hero {
-          background: radial-gradient(1000px 400px at 10% -10%, rgba(255, 107, 0, 0.12), transparent 50%),
-            radial-gradient(900px 380px at 90% -20%, rgba(255, 136, 0, 0.12), transparent 50%), #fff;
+          background: radial-gradient(
+              1000px 400px at 10% -10%,
+              rgba(255, 107, 0, 0.12),
+              transparent 50%
+            ),
+            radial-gradient(900px 380px at 90% -20%, rgba(255, 136, 0, 0.12), transparent 50%),
+            #fff;
           padding: 2.4rem 0 3.2rem;
           border-bottom: 1px solid var(--color-border);
         }
@@ -718,7 +734,6 @@ export default function Home() {
         }
         .hero-text {
           flex: 1.1;
-          min-width: 0;
         }
         .hero-text h1 {
           font-size: 2.45rem;
@@ -740,7 +755,6 @@ export default function Home() {
           align-items: center;
           margin: 1rem 0 0;
         }
-
         .btn-primary {
           background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-2) 100%);
           color: #fff;
@@ -764,7 +778,6 @@ export default function Home() {
           width: 100%;
           text-align: center;
         }
-
         .hero-card {
           background: #fff;
           border: 1px solid var(--color-border);
@@ -814,7 +827,6 @@ export default function Home() {
           margin-top: 0.7rem;
           text-align: center;
         }
-
         .section {
           padding: 3rem 0;
           background: #fff;
@@ -856,7 +868,12 @@ export default function Home() {
           align-items: stretch;
         }
         .price-card {
-          background: linear-gradient(180deg, #fff 0%, #fff 60%, rgba(255, 231, 214, 0.45) 100%);
+          background: linear-gradient(
+            180deg,
+            #fff 0%,
+            #fff 60%,
+            rgba(255, 231, 214, 0.45) 100%
+          );
           border: 1px solid var(--color-border);
           border-radius: 1rem;
           padding: 1.1rem;
@@ -936,7 +953,6 @@ export default function Home() {
           font-weight: 900;
           color: var(--color-muted);
         }
-
         .footer {
           background: var(--color-dark);
           color: #fff;
@@ -962,39 +978,11 @@ export default function Home() {
           color: #e5e7eb;
         }
 
-        /* Floating chat button */
-        .chat-fab {
-          position: fixed;
-          right: 1.5rem;
-          bottom: 1.5rem;
-          width: 3rem;
-          height: 3rem;
-          border-radius: 999px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, var(--color-primary), var(--color-primary-2));
-          color: #fff;
-          font-size: 1.4rem;
-          text-decoration: none;
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
-          z-index: 50;
-        }
-        .chat-fab:hover {
-          transform: translateY(-1px);
-        }
-
         /* ===== MOBILE FIXES ===== */
         @media (max-width: 900px) {
-          /* Hide any desktop-only elements */
-          .desktop-only {
-            display: none !important;
-          }
-          .mobile-only {
-            display: block !important;
-          }
+          .desktop-only { display: none !important; }
+          .mobile-only { display: inline-flex !important; }
 
-          /* Topbar stacks cleanly */
           .topbar-inner {
             height: auto;
             padding: 0.6rem 0;
@@ -1010,25 +998,15 @@ export default function Home() {
             margin-right: 0;
           }
 
-          /* Navbar spacing */
           .nav-inner {
             height: auto;
             padding: 0.75rem 0;
           }
 
-          /* Mobile menu appearance */
-          .mobile-menu {
-            display: grid;
-            gap: 0.9rem;
-            padding: 1rem 1.5rem 1.2rem;
-          }
-
-          /* Trust bar: 2 columns */
           .trust-inner {
             grid-template-columns: 1fr 1fr;
           }
 
-          /* Hero stacking + better text sizing */
           .hero-inner {
             flex-direction: column;
           }
