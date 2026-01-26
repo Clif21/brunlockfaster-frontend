@@ -10,6 +10,11 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  // ✅ Credit system state
+  const [creditCents, setCreditCents] = useState(0);
+  const [creditTx, setCreditTx] = useState([]);
+  const [creditLoading, setCreditLoading] = useState(false);
+
   // Optional: inline chat panel on account page (keeps your “chat on account page” idea)
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
@@ -36,6 +41,7 @@ export default function AccountPage() {
       setUser(parsed);
       fetchOrders(tok);
       fetchChat(tok);
+      fetchWallet(tok); // ✅ load credit balance + history
     } catch (e) {
       console.error(e);
       setErr("Session error. Please log in again.");
@@ -78,6 +84,53 @@ export default function AccountPage() {
     } catch (e) {
       // Don’t block account page if chat fails
       console.error("fetchChat:", e);
+    }
+  }
+
+  // ✅ Credit: fetch balance + transactions
+  async function fetchWallet(tok) {
+    setCreditLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/wallet/me`, {
+        headers: { Authorization: "Bearer " + tok },
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load credit");
+
+      setCreditCents(data.credit_balance_cents || 0);
+      setCreditTx(Array.isArray(data.transactions) ? data.transactions : []);
+    } catch (e) {
+      console.error("fetchWallet:", e);
+    } finally {
+      setCreditLoading(false);
+    }
+  }
+
+  // ✅ Credit: buy preset amounts using Stripe checkout session
+  async function buyCredit(amountCents) {
+    const tok = localStorage.getItem("br_token");
+    if (!tok) {
+      window.location.href = "/login";
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/api/wallet/topup/stripe`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + tok,
+        },
+        body: JSON.stringify({ amountCents }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Top-up failed");
+
+      window.location.href = data.url;
+    } catch (e) {
+      alert(e.message);
     }
   }
 
@@ -134,8 +187,10 @@ export default function AccountPage() {
         <h1 className="h1">Account</h1>
         <p className="error">{err}</p>
         <p className="muted">
-          <a className="link" href="/login">Log in</a> or{" "}
-          <a className="link" href="/register">create an account</a>
+          <a className="link" href="/login">
+            Log in
+          </a>{" "}
+          or <a className="link" href="/register">create an account</a>
         </p>
         <p style={{ marginTop: "1rem" }}>
           <a className="link" href="/">← Back to homepage</a>
@@ -173,6 +228,57 @@ export default function AccountPage() {
       {err && <p className="error">{err}</p>}
 
       <div className="twoCols">
+        {/* ✅ Credit */}
+        <section className="box">
+          <div className="boxTitleRow">
+            <h2 className="h2">BRunlockfaster Credit</h2>
+            <span className="muted small">
+              ${((creditCents || 0) / 100).toFixed(2)}
+            </span>
+          </div>
+
+          <p className="muted small">
+            Non-refundable credit usable only on brunlockfaster.com.
+          </p>
+
+          <div className="creditBtns">
+            <button onClick={() => buyCredit(2500)} className="btnSecondary">
+              $25
+            </button>
+            <button onClick={() => buyCredit(5000)} className="btnSecondary">
+              $50
+            </button>
+            <button onClick={() => buyCredit(10000)} className="btnSecondary">
+              $100
+            </button>
+            <button onClick={() => buyCredit(20000)} className="btnSecondary">
+              $200
+            </button>
+          </div>
+
+          <button
+            onClick={() => fetchWallet(localStorage.getItem("br_token"))}
+            className="btnSecondary"
+            style={{ width: "100%", marginTop: ".6rem" }}
+            disabled={creditLoading}
+          >
+            {creditLoading ? "Refreshing..." : "Refresh Credit"}
+          </button>
+
+          {creditTx.length > 0 && (
+            <div style={{ marginTop: ".85rem" }}>
+              <p className="muted small" style={{ marginBottom: ".4rem" }}>
+                Recent activity
+              </p>
+              {creditTx.slice(0, 4).map((t, i) => (
+                <p key={i} className="muted small" style={{ margin: ".15rem 0" }}>
+                  {t.type} — ${(t.amount_cents / 100).toFixed(2)} ({t.status})
+                </p>
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* Orders */}
         <section className="box">
           <div className="boxTitleRow">
@@ -322,7 +428,7 @@ const styles = `
 
   .twoCols{
     display:grid;
-    grid-template-columns: 1.25fr 0.75fr;
+    grid-template-columns: 1fr;
     gap: 1rem;
     align-items:start;
   }
@@ -341,6 +447,12 @@ const styles = `
     justify-content:space-between;
     gap:.8rem;
     margin-bottom:.75rem;
+  }
+
+  .creditBtns{
+    display:flex;
+    gap:.5rem;
+    flex-wrap:wrap;
   }
 
   .tableWrap{
@@ -441,9 +553,6 @@ const styles = `
 
   /* Mobile */
   @media (max-width: 900px){
-    .twoCols{
-      grid-template-columns: 1fr;
-    }
     .chatArea{
       height: 300px;
     }
@@ -459,5 +568,6 @@ const styles = `
     .headerBtns{ width:100%; }
     .btnSecondary{ width:100%; }
     .box{ padding: 1rem; }
+    .creditBtns button{ width: 100%; }
   }
 `;
