@@ -10,12 +10,16 @@ export default function AccountPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // ✅ Credit system state
+  // Credit
   const [creditCents, setCreditCents] = useState(0);
   const [creditTx, setCreditTx] = useState([]);
   const [creditLoading, setCreditLoading] = useState(false);
 
-  // Optional: inline chat panel on account page (keeps your “chat on account page” idea)
+  // ✅ Other amount input
+  const [customAmount, setCustomAmount] = useState("");
+  const [customErr, setCustomErr] = useState("");
+
+  // Chat
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
@@ -41,7 +45,7 @@ export default function AccountPage() {
       setUser(parsed);
       fetchOrders(tok);
       fetchChat(tok);
-      fetchWallet(tok); // ✅ load credit balance + history
+      fetchWallet(tok);
     } catch (e) {
       console.error(e);
       setErr("Session error. Please log in again.");
@@ -82,12 +86,10 @@ export default function AccountPage() {
       if (!res.ok) throw new Error(data.error || "Failed to load chat messages");
       setChatMessages(data.messages || []);
     } catch (e) {
-      // Don’t block account page if chat fails
       console.error("fetchChat:", e);
     }
   }
 
-  // ✅ Credit: fetch balance + transactions
   async function fetchWallet(tok) {
     setCreditLoading(true);
     try {
@@ -107,7 +109,6 @@ export default function AccountPage() {
     }
   }
 
-  // ✅ Credit: buy preset amounts using Stripe checkout session
   async function buyCredit(amountCents) {
     const tok = localStorage.getItem("br_token");
     if (!tok) {
@@ -132,6 +133,19 @@ export default function AccountPage() {
     } catch (e) {
       alert(e.message);
     }
+  }
+
+  // ✅ Custom amount handler ($5–$500, whole dollars)
+  function buyCustomCredit() {
+    setCustomErr("");
+    const n = Number(customAmount);
+
+    if (!Number.isFinite(n)) return setCustomErr("Enter a valid number.");
+    if (n < 5) return setCustomErr("Minimum is $5.");
+    if (n > 500) return setCustomErr("Maximum is $500.");
+    if (!Number.isInteger(n)) return setCustomErr("Whole dollars only (no cents).");
+
+    buyCredit(n * 100);
   }
 
   async function sendChatMessage(e) {
@@ -228,7 +242,7 @@ export default function AccountPage() {
       {err && <p className="error">{err}</p>}
 
       <div className="twoCols">
-        {/* ✅ Credit */}
+        {/* Credit */}
         <section className="box">
           <div className="boxTitleRow">
             <h2 className="h2">BRunlockfaster Credit</h2>
@@ -242,24 +256,41 @@ export default function AccountPage() {
           </p>
 
           <div className="creditBtns">
-            <button onClick={() => buyCredit(2500)} className="btnSecondary">
-              $25
-            </button>
-            <button onClick={() => buyCredit(5000)} className="btnSecondary">
-              $50
-            </button>
-            <button onClick={() => buyCredit(10000)} className="btnSecondary">
-              $100
-            </button>
-            <button onClick={() => buyCredit(20000)} className="btnSecondary">
-              $200
-            </button>
+            <button onClick={() => buyCredit(2500)} className="btnSecondary">$25</button>
+            <button onClick={() => buyCredit(5000)} className="btnSecondary">$50</button>
+            <button onClick={() => buyCredit(10000)} className="btnSecondary">$100</button>
+            <button onClick={() => buyCredit(20000)} className="btnSecondary">$200</button>
+          </div>
+
+          {/* ✅ Other amount */}
+          <div className="otherBox">
+            <div className="otherLabel">Other amount</div>
+            <div className="otherRow">
+              <span className="dollar">$</span>
+              <input
+                value={customAmount}
+                onChange={(e) => {
+                  setCustomAmount(e.target.value);
+                  setCustomErr("");
+                }}
+                placeholder="e.g. 75"
+                className="otherInput"
+                inputMode="numeric"
+              />
+              <button onClick={buyCustomCredit} className="otherBtn">
+                Buy Credit
+              </button>
+            </div>
+            {customErr ? <div className="otherErr">{customErr}</div> : null}
+            <div className="muted small" style={{ marginTop: ".35rem" }}>
+              Min $5 • Max $500 • Whole dollars only
+            </div>
           </div>
 
           <button
             onClick={() => fetchWallet(localStorage.getItem("br_token"))}
             className="btnSecondary"
-            style={{ width: "100%", marginTop: ".6rem" }}
+            style={{ width: "100%", marginTop: ".8rem" }}
             disabled={creditLoading}
           >
             {creditLoading ? "Refreshing..." : "Refresh Credit"}
@@ -270,7 +301,7 @@ export default function AccountPage() {
               <p className="muted small" style={{ marginBottom: ".4rem" }}>
                 Recent activity
               </p>
-              {creditTx.slice(0, 4).map((t, i) => (
+              {creditTx.slice(0, 6).map((t, i) => (
                 <p key={i} className="muted small" style={{ margin: ".15rem 0" }}>
                   {t.type} — ${(t.amount_cents / 100).toFixed(2)} ({t.status})
                 </p>
@@ -324,7 +355,7 @@ export default function AccountPage() {
           )}
         </section>
 
-        {/* Support Chat Panel */}
+        {/* Chat */}
         <section className="box">
           <div className="boxTitleRow">
             <h2 className="h2">Support chat</h2>
@@ -338,14 +369,9 @@ export default function AccountPage() {
               </p>
             ) : (
               chatMessages.map((m) => (
-                <div
-                  key={m.id}
-                  className={m.sender_type === "user" ? "msgRow me" : "msgRow"}
-                >
+                <div key={m.id} className={m.sender_type === "user" ? "msgRow me" : "msgRow"}>
                   <div className={m.sender_type === "user" ? "bubble me" : "bubble"}>
-                    <div className="who">
-                      {m.sender_type === "user" ? "You" : "Support"}
-                    </div>
+                    <div className="who">{m.sender_type === "user" ? "You" : "Support"}</div>
                     <div>{m.message}</div>
                   </div>
                 </div>
@@ -368,9 +394,7 @@ export default function AccountPage() {
         </section>
       </div>
 
-      {/* Floating widget remains available too */}
       <ChatWidget />
-
       <style jsx>{styles}</style>
     </main>
   );
@@ -455,6 +479,52 @@ const styles = `
     flex-wrap:wrap;
   }
 
+  .otherBox{
+    margin-top: .9rem;
+    padding: .85rem;
+    border: 1px solid #E5E7EB;
+    border-radius: .85rem;
+    background: #F9FAFB;
+  }
+  .otherLabel{
+    font-weight: 900;
+    margin-bottom: .45rem;
+  }
+  .otherRow{
+    display:flex;
+    gap:.5rem;
+    align-items:center;
+  }
+  .dollar{
+    font-weight: 900;
+  }
+  .otherInput{
+    flex:1;
+    border-radius: .75rem;
+    border: 1px solid #E5E7EB;
+    padding: .6rem .75rem;
+    outline: none;
+  }
+  .otherInput:focus{
+    border-color:#FF6B00;
+    box-shadow:0 0 0 3px rgba(255,107,0,.18);
+  }
+  .otherBtn{
+    border-radius: .75rem;
+    border: none;
+    padding: .65rem .9rem;
+    background: linear-gradient(90deg, #FF6B00 0%, #FF8800 100%);
+    color:#fff;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  .otherErr{
+    margin-top: .45rem;
+    color:#B91C1C;
+    font-weight: 800;
+    font-size: .9rem;
+  }
+
   .tableWrap{
     overflow-x:auto;
     -webkit-overflow-scrolling: touch;
@@ -486,7 +556,6 @@ const styles = `
     font-weight:800;
   }
 
-  /* Chat panel */
   .chatArea{
     height: 360px;
     overflow-y:auto;
@@ -510,9 +579,7 @@ const styles = `
     max-width: 92%;
     word-break: break-word;
   }
-  .bubble.me{
-    background:#FFEDD5;
-  }
+  .bubble.me{ background:#FFEDD5; }
   .who{
     font-size:.78rem;
     color:#6B7280;
@@ -551,23 +618,17 @@ const styles = `
     cursor:not-allowed;
   }
 
-  /* Mobile */
   @media (max-width: 900px){
-    .chatArea{
-      height: 300px;
-    }
+    .chatArea{ height: 300px; }
   }
-
   @media (max-width: 520px){
     .wrap{ margin: 1.6rem auto; }
     .h1{ font-size: 1.7rem; }
-    .headerRow{
-      flex-direction:column;
-      align-items:flex-start;
-    }
+    .headerRow{ flex-direction:column; align-items:flex-start; }
     .headerBtns{ width:100%; }
     .btnSecondary{ width:100%; }
-    .box{ padding: 1rem; }
     .creditBtns button{ width: 100%; }
+    .otherRow{ flex-direction: column; align-items: stretch; }
+    .otherBtn{ width: 100%; }
   }
 `;

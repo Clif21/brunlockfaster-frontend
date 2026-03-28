@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import ChatWidget from "../components/ChatWidget";
-
-const API_BASE = "http://localhost:4242";
+import { API_BASE } from "../lib/apiBase";
 
 export default function Home() {
   // ===== Form state =====
@@ -16,6 +15,22 @@ export default function Home() {
   const [price, setPrice] = useState("2900");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // ✅ After order creation, we show payment choices
+  const [createdOrder, setCreatedOrder] = useState(null);
+  // { orderNumber, priceCents, checkoutUrl }
+
+  // ✅ Credit info (only used if user is logged in)
+  const [creditCents, setCreditCents] = useState(null);
+  const [creditLoading, setCreditLoading] = useState(false);
+  const [creditError, setCreditError] = useState("");
+
+  const [token, setToken] = useState(null);
+  
+  useEffect(() => {
+    const t = localStorage.getItem("br_token");
+    setToken(t);
+  }, []);
 
   // ===== Brand + Model options =====
   const brandOptions = [
@@ -53,14 +68,7 @@ export default function Home() {
       "Galaxy A54 / A34 / A14",
       "Other",
     ],
-    LG: [
-      "LG V60 ThinQ",
-      "LG G8 / G8X ThinQ",
-      "LG Velvet",
-      "LG Stylo 6",
-      "LG K51 / K92",
-      "Other",
-    ],
+    LG: ["LG V60 ThinQ", "LG G8 / G8X ThinQ", "LG Velvet", "LG Stylo 6", "LG K51 / K92", "Other"],
     Motorola: [
       "Moto G Power (all years)",
       "Moto G Stylus (all years)",
@@ -69,52 +77,12 @@ export default function Home() {
       "Moto E (all years)",
       "Other",
     ],
-    "Google Pixel": [
-      "Pixel 9 / 9 Pro",
-      "Pixel 8 / 8 Pro",
-      "Pixel 7 / 7 Pro",
-      "Pixel 6 / 6 Pro",
-      "Pixel 5 / 5a",
-      "Other",
-    ],
-    OnePlus: [
-      "OnePlus 12 / 12R",
-      "OnePlus 11 / 11R",
-      "OnePlus 10 Pro / 10T",
-      "OnePlus 9 / 9 Pro",
-      "Nord N30 / N20",
-      "Other",
-    ],
-    Huawei: [
-      "P60 / P60 Pro",
-      "P50 / P50 Pro",
-      "Mate 50 / 50 Pro",
-      "Mate 40 / 40 Pro",
-      "Nova series",
-      "Other",
-    ],
-    Sony: [
-      "Xperia 1 V",
-      "Xperia 5 V",
-      "Xperia 10 V",
-      "Xperia Pro / Pro-I",
-      "Other",
-    ],
-    Nokia: [
-      "Nokia G50",
-      "Nokia X100",
-      "Nokia 5.4",
-      "Nokia 3.4",
-      "Other",
-    ],
-    Xiaomi: [
-      "Xiaomi 13 / 13 Pro",
-      "Xiaomi 12 / 12 Pro",
-      "Xiaomi 11 / 11T",
-      "Redmi Note 13 / 12",
-      "POCO F5 / F4",
-      "Other",
-    ],
+    "Google Pixel": ["Pixel 9 / 9 Pro", "Pixel 8 / 8 Pro", "Pixel 7 / 7 Pro", "Pixel 6 / 6 Pro", "Pixel 5 / 5a", "Other"],
+    OnePlus: ["OnePlus 12 / 12R", "OnePlus 11 / 11R", "OnePlus 10 Pro / 10T", "OnePlus 9 / 9 Pro", "Nord N30 / N20", "Other"],
+    Huawei: ["P60 / P60 Pro", "P50 / P50 Pro", "Mate 50 / 50 Pro", "Mate 40 / 40 Pro", "Nova series", "Other"],
+    Sony: ["Xperia 1 V", "Xperia 5 V", "Xperia 10 V", "Xperia Pro / Pro-I", "Other"],
+    Nokia: ["Nokia G50", "Nokia X100", "Nokia 5.4", "Nokia 3.4", "Other"],
+    Xiaomi: ["Xiaomi 13 / 13 Pro", "Xiaomi 12 / 12 Pro", "Xiaomi 11 / 11T", "Redmi Note 13 / 12", "POCO F5 / F4", "Other"],
   };
 
   const modelOptions = useMemo(() => {
@@ -138,10 +106,39 @@ export default function Home() {
     return model === "Other" ? customModel.trim() : model;
   }
 
+  async function fetchCreditBalance() {
+    if (!token) {
+      setCreditCents(null);
+      setCreditError("");
+      return;
+    }
+
+    setCreditLoading(true);
+    setCreditError("");
+    try {
+      const res = await fetch(`${API_BASE}/api/wallet/me`, {
+        headers: { Authorization: "Bearer " + token },
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load credit");
+
+      setCreditCents(data.credit_balance_cents ?? 0);
+    } catch (e) {
+      setCreditError(e.message || "Failed to load credit");
+      setCreditCents(null);
+    } finally {
+      setCreditLoading(false);
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setCreatedOrder(null);
+    setCreditCents(null);
+    setCreditError("");
 
     try {
       const finalBrand = getFinalBrand();
@@ -172,7 +169,18 @@ export default function Home() {
         throw new Error(data.error || "Failed to create order");
       }
 
-      window.location.href = data.checkoutUrl;
+      // We need an order number to pay with credit.
+      // Your backend usually returns it — support both names.
+      const orderNumber = data.orderNumber || data.order_number || data.order?.order_number;
+
+      setCreatedOrder({
+        orderNumber: orderNumber || null,
+        priceCents: priceCents,
+        checkoutUrl: data.checkoutUrl,
+      });
+
+      // If logged in, fetch credit so we can show “Pay with Credit”
+      await fetchCreditBalance();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -180,9 +188,48 @@ export default function Home() {
     }
   }
 
+  async function payWithCredit() {
+    setError("");
+
+    if (!token) {
+      window.location.href = "/login";
+      return;
+    }
+
+    if (!createdOrder?.orderNumber) {
+      setError("Missing order number from server. Tell me what /api/orders returns and I’ll fix it.");
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/orders/${encodeURIComponent(createdOrder.orderNumber)}/pay-with-credit`,
+        {
+          method: "POST",
+          headers: { Authorization: "Bearer " + token },
+        }
+      );
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Credit payment failed");
+
+      // Refresh credit + give user a clear next step
+      await fetchCreditBalance();
+      alert("Paid with credit! You can track your order on the Track page.");
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   // FAQ state
   const [openFaq, setOpenFaq] = useState(null);
   const toggleFaq = (i) => setOpenFaq(openFaq === i ? null : i);
+
+  const canPayWithCredit =
+    token &&
+    createdOrder &&
+    typeof creditCents === "number" &&
+    creditCents >= (createdOrder.priceCents || 0);
 
   return (
     <>
@@ -254,9 +301,7 @@ export default function Home() {
         <div className="container hero-inner">
           <div className="hero-text">
             <h1>Carrier unlock for iPhone, Samsung &amp; more.</h1>
-            <p>
-              Fast, remote, IMEI-based unlocks. Pay online, get updates by email. No jailbreak.
-            </p>
+            <p>Fast, remote, IMEI-based unlocks. Pay online, get updates by email. No jailbreak.</p>
             <ul className="bullets">
               <li>✅ Keep your data &amp; warranty</li>
               <li>✅ Works worldwide once unlocked</li>
@@ -280,13 +325,7 @@ export default function Home() {
               {/* Email */}
               <label>
                 Email
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                />
+                <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="you@example.com" />
               </label>
 
               {/* Brand */}
@@ -305,13 +344,7 @@ export default function Home() {
               {brand === "Other" && (
                 <label>
                   Enter brand name
-                  <input
-                    type="text"
-                    value={customBrand}
-                    onChange={(e) => setCustomBrand(e.target.value)}
-                    required
-                    placeholder="Enter your brand name"
-                  />
+                  <input type="text" value={customBrand} onChange={(e) => setCustomBrand(e.target.value)} required placeholder="Enter your brand name" />
                 </label>
               )}
 
@@ -343,64 +376,113 @@ export default function Home() {
                   {model === "Other" && (
                     <label>
                       Enter model name
-                      <input
-                        type="text"
-                        value={customModel}
-                        onChange={(e) => setCustomModel(e.target.value)}
-                        required
-                        placeholder="e.g., Rare regional variant"
-                      />
+                      <input type="text" value={customModel} onChange={(e) => setCustomModel(e.target.value)} required placeholder="e.g., Rare regional variant" />
                     </label>
                   )}
                 </>
               ) : (
                 <label>
                   Model
-                  <input
-                    type="text"
-                    value={customModel}
-                    onChange={(e) => setCustomModel(e.target.value)}
-                    required
-                    placeholder="Enter your model"
-                  />
+                  <input type="text" value={customModel} onChange={(e) => setCustomModel(e.target.value)} required placeholder="Enter your model" />
                 </label>
               )}
 
               {/* IMEI */}
               <label>
                 IMEI
-                <input
-                  value={imei}
-                  onChange={(e) => setImei(e.target.value)}
-                  required
-                  placeholder="Dial *#06# to get it (for live use, any value for tests)"
-                />
+                <input value={imei} onChange={(e) => setImei(e.target.value)} required placeholder="Dial *#06# to get it (for live use, any value for tests)" />
               </label>
 
               {/* Price */}
               <label>
                 Price (cents)
-                <input
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  type="number"
-                  min="100"
-                  required
-                />
+                <input value={price} onChange={(e) => setPrice(e.target.value)} type="number" min="100" required />
               </label>
 
               {error && <p className="error">{error}</p>}
 
               <button type="submit" disabled={loading} className="btn-primary btn-full">
-                {loading ? "Creating order..." : "Proceed to Payment"}
+                {loading ? "Creating order..." : "Create Order"}
               </button>
             </form>
 
-            <p className="safe-text">🔒 Secure Stripe Checkout</p>
+            {/* ✅ Payment options appear AFTER order creation */}
+            {createdOrder && (
+              <div className="payBox">
+                <div className="payTitle">Choose how to pay</div>
+
+                <div className="payRow">
+                  <button
+                    className="btn-primary btn-full"
+                    onClick={() => (window.location.href = createdOrder.checkoutUrl)}
+                    type="button"
+                  >
+                    Pay with Card (Stripe)
+                  </button>
+                </div>
+
+                <div className="creditInfo">
+                  {token ? (
+                    <>
+                      <div className="muted small">
+                        Your credit:{" "}
+                        {creditLoading
+                          ? "Loading..."
+                          : typeof creditCents === "number"
+                          ? `$${(creditCents / 100).toFixed(2)}`
+                          : "—"}
+                      </div>
+
+                      {creditError ? <div className="error">{creditError}</div> : null}
+
+                      <button
+                        className={`btn-ghost btn-full ${canPayWithCredit ? "" : "disabledBtn"}`}
+                        onClick={payWithCredit}
+                        type="button"
+                        disabled={!canPayWithCredit}
+                      >
+                        {canPayWithCredit
+                          ? `Pay with Credit ($${(createdOrder.priceCents / 100).toFixed(2)})`
+                          : "Pay with Credit (insufficient funds)"}
+                      </button>
+
+                      <div className="muted small" style={{ marginTop: ".35rem" }}>
+                        Need more credit?{" "}
+                        <a
+                          href="/account"
+                          style={{
+                            color: "var(--color-primary)",
+                            fontWeight: 800,
+                            textDecoration: "none",
+                          }}
+                        >
+                          Add credit in your account
+                        </a>
+                        .
+                      </div>
+                    </>
+                  ) : (
+                    <div
+                      style={{
+                        marginTop: ".35rem",
+                        color: "#b91c1c",
+                        fontSize: ".85rem",
+                        fontWeight: 700,
+                      }}
+                    >
+                      You must be logged in to use site credit.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <p className="safe-text">🔒 Secure payments</p>
           </div>
         </div>
       </section>
 
+      {/* (rest of your page stays the same) */}
       {/* FEATURES */}
       <section className="section" id="services">
         <div className="container">
@@ -408,9 +490,7 @@ export default function Home() {
           <div className="grid3">
             <div className="card">
               <h3>Unlock-only focus</h3>
-              <p>
-                We specialize in IMEI unlocks—no upsells, no distractions, just fast delivery.
-              </p>
+              <p>We specialize in IMEI unlocks—no upsells, no distractions, just fast delivery.</p>
             </div>
             <div className="card">
               <h3>Clear statuses</h3>
@@ -435,7 +515,7 @@ export default function Home() {
             </div>
             <div className="step">
               <h3>2. Pay online</h3>
-              <p>Checkout securely via Stripe. We never store card details.</p>
+              <p>Checkout securely via Stripe or use your site credit.</p>
             </div>
             <div className="step">
               <h3>3. We unlock it</h3>
@@ -497,9 +577,7 @@ export default function Home() {
             <span>LG</span>
             <span>Motorola</span>
           </div>
-          <p className="muted center">
-            Don’t see yours? Submit the form anyway—if unsupported, we’ll refund you.
-          </p>
+          <p className="muted center">Don’t see yours? Submit the form anyway—if unsupported, we’ll refund you.</p>
         </div>
       </section>
 
@@ -509,16 +587,11 @@ export default function Home() {
           <h2>What customers say</h2>
           <div className="grid3">
             <div className="card">
-              <p>
-                “Paid at lunch, email same evening that my iPhone was unlocked. Swapped SIM and it
-                worked.”
-              </p>
+              <p>“Paid at lunch, email same evening that my iPhone was unlocked. Swapped SIM and it worked.”</p>
               <div className="who">— Miguel R.</div>
             </div>
             <div className="card">
-              <p>
-                “Clear steps and they refunded my friend when her carrier wasn’t supported. Legit.”
-              </p>
+              <p>“Clear steps and they refunded my friend when her carrier wasn’t supported. Legit.”</p>
               <div className="who">— Ashley P.</div>
             </div>
             <div className="card">
@@ -536,11 +609,7 @@ export default function Home() {
           <div className="faq">
             {faqData.map((f, i) => (
               <div key={i} className="faq-item">
-                <button
-                  className="faq-q"
-                  onClick={() => toggleFaq(i)}
-                  aria-expanded={openFaq === i}
-                >
+                <button className="faq-q" onClick={() => toggleFaq(i)} aria-expanded={openFaq === i}>
                   {f.q}
                   <span className="chev">{openFaq === i ? "−" : "+"}</span>
                 </button>
@@ -557,9 +626,7 @@ export default function Home() {
           <div>
             <h3>BRunlockfaster</h3>
             <p>Fast, secure, IMEI-based phone unlock service.</p>
-            <p className="muted small">
-              We do not jailbreak or modify software. All payments handled by Stripe.
-            </p>
+            <p className="muted small">We do not jailbreak or modify software. Payments via Stripe or site credit.</p>
           </div>
           <div>
             <h4>Contact</h4>
@@ -572,33 +639,19 @@ export default function Home() {
           </div>
           <div>
             <h4>Links</h4>
-            <p>
-              <a href="#how">How it works</a>
-            </p>
-            <p>
-              <a href="/track">Track order</a>
-            </p>
-            <p>
-              <a href="/login">Login</a>
-            </p>
-            <p>
-              <a href="/register">Create account</a>
-            </p>
-            <p>
-              <a href="/account">Account</a>
-            </p>
-            <p>
-              <a href="#contact">Contact</a>
-            </p>
+            <p><a href="#how">How it works</a></p>
+            <p><a href="/track">Track order</a></p>
+            <p><a href="/login">Login</a></p>
+            <p><a href="/register">Create account</a></p>
+            <p><a href="/account">Account</a></p>
+            <p><a href="#contact">Contact</a></p>
           </div>
         </div>
         <div className="footer-bottom">© {new Date().getFullYear()} BRunlockfaster. All rights reserved.</div>
       </footer>
 
-      {/* FLOATING CHAT WIDGET */}
       <ChatWidget />
 
-      {/* STYLES */}
       <style jsx>{`
         :global(:root) {
           --color-primary: #ff6b00;
@@ -617,7 +670,6 @@ export default function Home() {
           font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
         }
 
-        /* Helpers for responsive nav */
         .desktop-only { display: block; }
         .mobile-only { display: none; }
 
@@ -637,13 +689,9 @@ export default function Home() {
           align-items: center;
           height: 38px;
         }
-        .topbar .left span {
-          margin-right: 1rem;
-        }
-        .toplink {
-          color: #fff;
-          text-decoration: none;
-        }
+        .topbar .left span { margin-right: 1rem; }
+        .toplink { color: #fff; text-decoration: none; }
+
         .navbar {
           background: #fff;
           border-bottom: 1px solid var(--color-border);
@@ -658,11 +706,7 @@ export default function Home() {
           height: 64px;
           gap: 1rem;
         }
-        .logo {
-          font-weight: 800;
-          font-size: 1.15rem;
-          color: var(--color-dark);
-        }
+        .logo { font-weight: 800; font-size: 1.15rem; color: var(--color-dark); }
         .links a {
           margin-right: 1rem;
           text-decoration: none;
@@ -670,11 +714,7 @@ export default function Home() {
           font-size: 0.95rem;
           white-space: nowrap;
         }
-        .nav-actions {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
+        .nav-actions { display: flex; align-items: center; gap: 0.75rem; }
         .nav-cta {
           background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-2) 100%);
           color: #fff;
@@ -702,11 +742,7 @@ export default function Home() {
 
         .trust {
           background: var(--color-dark);
-          background-image: linear-gradient(
-            90deg,
-            rgba(255, 107, 0, 0.15),
-            rgba(255, 136, 0, 0.15)
-          );
+          background-image: linear-gradient(90deg, rgba(255,107,0,0.15), rgba(255,136,0,0.15));
           color: #eaeef6;
           font-size: 0.9rem;
         }
@@ -716,45 +752,20 @@ export default function Home() {
           gap: 0.75rem;
           padding: 0.7rem 0;
         }
+
         .hero {
-          background: radial-gradient(
-              1000px 400px at 10% -10%,
-              rgba(255, 107, 0, 0.12),
-              transparent 50%
-            ),
-            radial-gradient(900px 380px at 90% -20%, rgba(255, 136, 0, 0.12), transparent 50%),
-            #fff;
+          background: radial-gradient(1000px 400px at 10% -10%, rgba(255, 107, 0, 0.12), transparent 50%),
+            radial-gradient(900px 380px at 90% -20%, rgba(255, 136, 0, 0.12), transparent 50%), #fff;
           padding: 2.4rem 0 3.2rem;
           border-bottom: 1px solid var(--color-border);
         }
-        .hero-inner {
-          display: flex;
-          gap: 2rem;
-          align-items: flex-start;
-        }
-        .hero-text {
-          flex: 1.1;
-        }
-        .hero-text h1 {
-          font-size: 2.45rem;
-          margin: 0 0 0.8rem;
-          color: var(--color-dark);
-          letter-spacing: -0.02em;
-        }
-        .hero-text p {
-          color: var(--color-muted);
-          margin: 0 0 0.9rem;
-        }
-        .bullets {
-          margin: 0 0 1.1rem 1.2rem;
-          color: #374151;
-        }
-        .hero-actions {
-          display: flex;
-          gap: 0.85rem;
-          align-items: center;
-          margin: 1rem 0 0;
-        }
+        .hero-inner { display: flex; gap: 2rem; align-items: flex-start; }
+        .hero-text { flex: 1.1; }
+        .hero-text h1 { font-size: 2.45rem; margin: 0 0 0.8rem; color: var(--color-dark); letter-spacing: -0.02em; }
+        .hero-text p { color: var(--color-muted); margin: 0 0 0.9rem; }
+        .bullets { margin: 0 0 1.1rem 1.2rem; color: #374151; }
+        .hero-actions { display: flex; gap: 0.85rem; align-items: center; margin: 1rem 0 0; }
+
         .btn-primary {
           background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-primary-2) 100%);
           color: #fff;
@@ -773,11 +784,11 @@ export default function Home() {
           color: var(--color-primary);
           text-decoration: none;
           background: #fff;
+          cursor: pointer;
+          font-weight: 800;
         }
-        .btn-full {
-          width: 100%;
-          text-align: center;
-        }
+        .btn-full { width: 100%; text-align: center; }
+
         .hero-card {
           background: #fff;
           border: 1px solid var(--color-border);
@@ -786,256 +797,98 @@ export default function Home() {
           width: 380px;
           box-shadow: 0 14px 45px rgba(17, 24, 39, 0.12);
         }
-        .muted {
-          color: var(--color-muted);
-        }
-        .center {
-          text-align: center;
-        }
-        .order-form {
-          display: grid;
-          gap: 0.85rem;
-          margin-top: 0.9rem;
-        }
-        .order-form label {
-          font-size: 0.86rem;
-          display: grid;
-          gap: 0.35rem;
-          color: var(--color-dark);
-        }
-        .order-form input,
-        .order-form select {
+        .muted { color: var(--color-muted); }
+        .center { text-align: center; }
+
+        .order-form { display: grid; gap: 0.85rem; margin-top: 0.9rem; }
+        .order-form label { font-size: 0.86rem; display: grid; gap: 0.35rem; color: var(--color-dark); }
+        .order-form input, .order-form select {
           padding: 0.6rem 0.7rem;
           border: 1px solid var(--color-border);
           border-radius: 0.6rem;
           background: #fff;
           transition: box-shadow 0.15s ease, border-color 0.15s ease;
         }
-        .order-form input:focus,
-        .order-form select:focus {
+        .order-form input:focus, .order-form select:focus {
           outline: none;
           border-color: var(--color-primary);
           box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
         }
-        .error {
-          color: #b91c1c;
-          font-size: 0.9rem;
-        }
-        .safe-text {
-          font-size: 0.78rem;
-          color: var(--color-muted);
-          margin-top: 0.7rem;
-          text-align: center;
-        }
-        .section {
-          padding: 3rem 0;
-          background: #fff;
-        }
-        .section.alt {
-          background: var(--color-accent);
-        }
-        .section h2 {
-          text-align: center;
-          margin: 0 0 1.4rem;
-          color: var(--color-dark);
-        }
-        .grid3 {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-          gap: 1.2rem;
-        }
-        .card {
-          background: #fff;
-          border: 1px solid var(--color-border);
-          border-radius: 0.8rem;
-          padding: 1rem;
-        }
-        .steps {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-          gap: 1.2rem;
-        }
-        .step {
-          background: #fff;
-          border: 1px solid var(--color-border);
-          border-radius: 0.8rem;
-          padding: 1rem;
-        }
-        .pricing {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.2rem;
-          align-items: stretch;
-        }
-        .price-card {
-          background: linear-gradient(
-            180deg,
-            #fff 0%,
-            #fff 60%,
-            rgba(255, 231, 214, 0.45) 100%
-          );
-          border: 1px solid var(--color-border);
-          border-radius: 1rem;
-          padding: 1.1rem;
-          display: grid;
-          gap: 0.6rem;
-        }
-        .price-card .tag {
-          font-weight: 700;
-          color: var(--color-dark);
-        }
-        .price {
-          font-size: 2rem;
-          font-weight: 900;
-          color: var(--color-dark);
-          letter-spacing: -0.02em;
-        }
-        .price-card ul {
-          margin: 0.3rem 0 0.6rem 1.1rem;
-          color: #374151;
-        }
-        .popular {
-          border: 2px solid var(--color-primary);
-          box-shadow: 0 16px 40px rgba(255, 107, 0, 0.18);
-        }
-        .logos {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-          gap: 0.8rem;
-          justify-items: center;
-          padding-top: 0.4rem;
-        }
-        .logos span {
-          background: #fff;
-          border: 1px solid var(--color-border);
-          border-radius: 0.6rem;
-          padding: 0.7rem 1rem;
-          font-weight: 700;
-          color: var(--color-dark);
-          box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06);
-        }
-        .who {
-          margin-top: 0.5rem;
-          font-size: 0.95rem;
-          color: var(--color-muted);
-        }
-        .faq {
-          max-width: 850px;
-          margin: 0 auto;
-        }
-        .faq-item {
-          background: #fff;
-          border: 1px solid var(--color-border);
-          border-radius: 0.8rem;
-          margin-bottom: 0.7rem;
-          overflow: hidden;
-        }
-        .faq-q {
-          width: 100%;
-          text-align: left;
-          background: #fff;
-          border: none;
-          padding: 0.95rem 1rem;
-          font-size: 1rem;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          cursor: pointer;
-          color: var(--color-dark);
-        }
-        .faq-a {
-          padding: 0.95rem 1rem;
+        .error { color: #b91c1c; font-size: 0.9rem; }
+        .safe-text { font-size: 0.78rem; color: var(--color-muted); margin-top: 0.7rem; text-align: center; }
+
+        .payBox{
+          margin-top: 0.9rem;
           border-top: 1px solid var(--color-border);
-          color: #374151;
-          background: #fff;
-        }
-        .chev {
-          font-weight: 900;
-          color: var(--color-muted);
-        }
-        .footer {
-          background: var(--color-dark);
-          color: #fff;
-          padding: 2.4rem 0 1rem;
-        }
-        .footer a {
-          color: #fff;
-          text-decoration: none;
-        }
-        .footer-inner {
+          padding-top: 0.9rem;
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 1.2rem;
+          gap: 0.65rem;
         }
-        .small {
-          font-size: 0.85rem;
-          color: #cbd5e1;
+        .payTitle{
+          font-weight: 900;
+          color: var(--color-dark);
         }
-        .footer-bottom {
-          text-align: center;
-          margin-top: 1.2rem;
-          font-size: 0.85rem;
-          color: #e5e7eb;
+        .creditInfo{ display: grid; gap: .5rem; }
+        .small{ font-size: .85rem; }
+
+        .disabledBtn{
+          opacity: .6;
+          cursor: not-allowed;
         }
 
-        /* ===== MOBILE FIXES ===== */
+        .section { padding: 3rem 0; background: #fff; }
+        .section.alt { background: var(--color-accent); }
+        .section h2 { text-align: center; margin: 0 0 1.4rem; color: var(--color-dark); }
+
+        .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1.2rem; }
+        .card { background: #fff; border: 1px solid var(--color-border); border-radius: 0.8rem; padding: 1rem; }
+
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1.2rem; }
+        .step { background: #fff; border: 1px solid var(--color-border); border-radius: 0.8rem; padding: 1rem; }
+
+        .pricing { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.2rem; align-items: stretch; }
+        .price-card { background: linear-gradient(180deg,#fff 0%,#fff 60%,rgba(255,231,214,0.45) 100%); border: 1px solid var(--color-border); border-radius: 1rem; padding: 1.1rem; display: grid; gap: 0.6rem; }
+        .price-card .tag { font-weight: 700; color: var(--color-dark); }
+        .price { font-size: 2rem; font-weight: 900; color: var(--color-dark); letter-spacing: -0.02em; }
+        .price-card ul { margin: 0.3rem 0 0.6rem 1.1rem; color: #374151; }
+        .popular { border: 2px solid var(--color-primary); box-shadow: 0 16px 40px rgba(255, 107, 0, 0.18); }
+
+        .logos { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.8rem; justify-items: center; padding-top: 0.4rem; }
+        .logos span { background: #fff; border: 1px solid var(--color-border); border-radius: 0.6rem; padding: 0.7rem 1rem; font-weight: 700; color: var(--color-dark); box-shadow: 0 6px 18px rgba(17, 24, 39, 0.06); }
+
+        .who { margin-top: 0.5rem; font-size: 0.95rem; color: var(--color-muted); }
+
+        .faq { max-width: 850px; margin: 0 auto; }
+        .faq-item { background: #fff; border: 1px solid var(--color-border); border-radius: 0.8rem; margin-bottom: 0.7rem; overflow: hidden; }
+        .faq-q { width: 100%; text-align: left; background: #fff; border: none; padding: 0.95rem 1rem; font-size: 1rem; display: flex; align-items: center; justify-content: space-between; cursor: pointer; color: var(--color-dark); }
+        .faq-a { padding: 0.95rem 1rem; border-top: 1px solid var(--color-border); color: #374151; background: #fff; }
+        .chev { font-weight: 900; color: var(--color-muted); }
+
+        .footer { background: var(--color-dark); color: #fff; padding: 2.4rem 0 1rem; }
+        .footer a { color: #fff; text-decoration: none; }
+        .footer-inner { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; }
+        .footer-bottom { text-align: center; margin-top: 1.2rem; font-size: 0.85rem; color: #e5e7eb; }
+
         @media (max-width: 900px) {
           .desktop-only { display: none !important; }
           .mobile-only { display: inline-flex !important; }
 
-          .topbar-inner {
-            height: auto;
-            padding: 0.6rem 0;
-            gap: 0.45rem;
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .topbar .left {
-            display: grid;
-            gap: 0.35rem;
-          }
-          .topbar .left span {
-            margin-right: 0;
-          }
+          .topbar-inner { height: auto; padding: 0.6rem 0; gap: 0.45rem; flex-direction: column; align-items: flex-start; }
+          .topbar .left { display: grid; gap: 0.35rem; }
+          .topbar .left span { margin-right: 0; }
 
-          .nav-inner {
-            height: auto;
-            padding: 0.75rem 0;
-          }
-
-          .trust-inner {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .hero-inner {
-            flex-direction: column;
-          }
-          .hero-text h1 {
-            font-size: 1.85rem;
-            line-height: 1.15;
-          }
-          .hero-actions {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 0.75rem;
-          }
-          .hero-actions a {
-            width: 100%;
-            text-align: center;
-          }
-          .hero-card {
-            width: 100%;
-            padding: 1rem;
-          }
+          .nav-inner { height: auto; padding: 0.75rem 0; }
+          .trust-inner { grid-template-columns: 1fr 1fr; }
+          .hero-inner { flex-direction: column; }
+          .hero-text h1 { font-size: 1.85rem; line-height: 1.15; }
+          .hero-actions { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+          .hero-actions a { width: 100%; text-align: center; }
+          .hero-card { width: 100%; padding: 1rem; }
         }
 
         @media (max-width: 380px) {
-          .container {
-            padding: 0 1rem;
-          }
-          .trust-inner {
-            grid-template-columns: 1fr;
-          }
+          .container { padding: 0 1rem; }
+          .trust-inner { grid-template-columns: 1fr; }
         }
       `}</style>
     </>
@@ -1043,25 +896,10 @@ export default function Home() {
 }
 
 const faqData = [
-  {
-    q: "Is this permanent? Will it relock after updates?",
-    a: "IMEI unlocks are permanent and tied to your device’s IMEI. Your phone will remain unlocked across updates and resets.",
-  },
-  {
-    q: "How long does an unlock take?",
-    a: "Standard is typically 1–3 business days. Express aims for same-day when available. Exact timing depends on carrier/model.",
-  },
-  {
-    q: "What happens if my carrier isn’t supported?",
-    a: "If we can’t process your unlock after payment due to an unsupported case, we’ll issue a refund.",
-  },
-  {
-    q: "Do you need my Apple ID or passcode?",
-    a: "No, never. We only need your IMEI (dial *#06#). Keep your accounts secure and private.",
-  },
-  {
-    q: "Is payment safe?",
-    a: "Yes. All payments are processed by Stripe. We do not store or process card numbers on our servers.",
-  },
+  { q: "Is this permanent? Will it relock after updates?", a: "IMEI unlocks are permanent and tied to your device’s IMEI. Your phone will remain unlocked across updates and resets." },
+  { q: "How long does an unlock take?", a: "Standard is typically 1–3 business days. Express aims for same-day when available. Exact timing depends on carrier/model." },
+  { q: "What happens if my carrier isn’t supported?", a: "If we can’t process your unlock after payment due to an unsupported case, we’ll issue a refund." },
+  { q: "Do you need my Apple ID or passcode?", a: "No, never. We only need your IMEI (dial *#06#). Keep your accounts secure and private." },
+  { q: "Is payment safe?", a: "Yes. All payments are processed by Stripe. We do not store or process card numbers on our servers." },
 ];
 
