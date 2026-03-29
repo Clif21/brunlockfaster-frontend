@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import ChatWidget from "../components/ChatWidget";
 import { API_BASE } from "../lib/apiBase";
+import PayPalButtons from "../components/PayPalButtons";
 
 export default function Home() {
   // ===== Form state =====
@@ -411,6 +412,7 @@ export default function Home() {
               <div className="payBox">
                 <div className="payTitle">Choose how to pay</div>
 
+                {/* Stripe */}
                 <div className="payRow">
                   <button
                     className="btn-primary btn-full"
@@ -421,6 +423,20 @@ export default function Home() {
                   </button>
                 </div>
 
+                {/* PayPal */}
+                <div className="payRow">
+                  <div className="muted small" style={{ marginBottom: ".35rem" }}>
+                    Or pay with PayPal
+                  </div>
+                  <PayPalButtons
+                    orderNumber={createdOrder.orderNumber}
+                    onPaid={() => {
+                      alert("Order paid with PayPal! You can track it on the Track page.");
+                    }}
+                  />
+                </div>
+
+                {/* Credit Section */}
                 <div className="creditInfo">
                   {token ? (
                     <>
@@ -476,7 +492,6 @@ export default function Home() {
                 </div>
               </div>
             )}
-
             <p className="safe-text">🔒 Secure payments</p>
           </div>
         </div>
